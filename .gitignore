@@ -21,3 +21,6 @@ erl_crash.dump
 
 # no elixir ls
 .elixir_ls/
+
+# no debugging database
+priv/db

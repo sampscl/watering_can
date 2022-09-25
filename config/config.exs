@@ -26,6 +26,14 @@ config :nerves, source_date_epoch: "1664106743"
 
 config :logger, backends: [RingLogger]
 
+# db config
+config :watering_can,
+  ecto_repos: [Db.Repo]
+
+config :watering_can, Db.Repo,
+  database: "priv/db/db.sqlite3",
+  log: false
+
 if Mix.target() == :host do
   import_config "host.exs"
 else

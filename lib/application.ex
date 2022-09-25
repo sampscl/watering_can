@@ -11,11 +11,16 @@ defmodule WateringCan.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: WateringCan.Supervisor]
 
+    # telemetry
+    :ok = :telemetry.attach("watering_can-db-init", [:ecto, :repo, :init], &Telemetry.Db.handle_init/4, %{})
+    :ok = :telemetry.attach("watering_can-db-query", [:db, :repo, :query], &Telemetry.Db.handle_query/4, %{})
+
     children =
       [
         # Children for all targets
         # Starts a worker by calling: WateringCan.Worker.start_link(arg)
         # {WateringCan.Worker, arg},
+        Db.Repo.child_spec([]),
       ] ++ children(target())
 
     Supervisor.start_link(children, opts)

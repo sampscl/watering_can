@@ -33,12 +33,21 @@ defmodule WateringCan.MixProject do
       aliases: aliases(),
       releases: [{@app, release()}],
       preferred_cli_env: [espec: :test, compliance: :test],
-      preferred_cli_target: [run: :host, espec: :host]
+      preferred_cli_target: [run: :host, espec: :host],
+      # this makes dialyzer include mix behaviors in the PLT so that
+      # dialyxir doesn't complain about our mix tasks and unknown
+      # mix module behaviors, thanks Stack Overflow: https://stackoverflow.com/questions/51208388/how-to-fix-dialyzer-callback-info-about-the-behaviour-is-not-available
+      dialyzer: [plt_add_apps: [:mix]],
     ]
   end
 
   def aliases do
     [
+      "ecto.setup": [
+        "ecto.create",
+        "ecto.migrate",
+        "ecto.seed"
+      ],
       espec: &espec/1,
       compliance: [
         "compile",
@@ -95,6 +104,8 @@ defmodule WateringCan.MixProject do
       {:espec, "~> 1.9", only: :test},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
+      {:ecto_sqlite3, "~> 0.8"},
+      {:telemetry, "~> 1.1"},
     ]
   end
 
