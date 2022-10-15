@@ -30,10 +30,6 @@ config :logger, backends: [RingLogger]
 config :watering_can,
   ecto_repos: [Db.Repo]
 
-config :watering_can, Db.Repo,
-  database: "priv/db/db.sqlite3",
-  log: false
-
 if Mix.target() == :host do
   import_config "host.exs"
 else

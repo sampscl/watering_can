@@ -8,6 +8,6 @@ defmodule Mix.Tasks.Ecto.Seed do
 
   @impl Mix.Task
   def run(_) do
-    Code.eval_file("priv/repo/seeds.exs")
+    Db.Release.seed()
   end
 end

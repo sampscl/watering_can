@@ -4,6 +4,7 @@ defmodule WateringCan.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   @impl true
   def start(_type, _args) do
@@ -14,6 +15,10 @@ defmodule WateringCan.Application do
     # telemetry
     :ok = :telemetry.attach("watering_can-db-init", [:ecto, :repo, :init], &Telemetry.Db.handle_init/4, %{})
     :ok = :telemetry.attach("watering_can-db-query", [:db, :repo, :query], &Telemetry.Db.handle_query/4, %{})
+
+    Logger.info("Loading database #{Keyword.get(Application.get_env(:watering_can, Db.Repo, []), :database, "")}")
+    Db.Release.migrate()
+    Db.Release.seed()
 
     children =
       [

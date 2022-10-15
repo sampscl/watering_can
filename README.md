@@ -1,6 +1,8 @@
 # WateringCan
 
-**TODO: Add description**
+Irrigation system control and UI
+
+Interesting: https://github.com/nerves-project/nerves_system_x86_64/blob/main/priv/run-qemu.sh
 
 ## Targets
 
@@ -17,16 +19,17 @@ https://hexdocs.pm/nerves/targets.html#content
 ## Getting Started
 
 To start your Nerves app:
-  * `export MIX_TARGET=my_target` or prefix every command with
-    `MIX_TARGET=my_target`. For example, `MIX_TARGET=rpi3`
-  * Install dependencies with `mix deps.get`
-  * Create firmware with `mix firmware`
-  * Burn to an SD card with `mix burn`
+
+- `export MIX_TARGET=my_target` or prefix every command with
+  `MIX_TARGET=my_target`. For example, `MIX_TARGET=rpi3`
+- Install dependencies with `mix deps.get`
+- Create firmware with `mix firmware`
+- Burn to an SD card with `mix burn`
 
 ## Learn more
 
-  * Official docs: https://hexdocs.pm/nerves/getting-started.html
-  * Official website: https://nerves-project.org/
-  * Forum: https://elixirforum.com/c/nerves-forum
-  * Discussion Slack elixir-lang #nerves ([Invite](https://elixir-slackin.herokuapp.com/))
-  * Source: https://github.com/nerves-project/nerves
+- Official docs: https://hexdocs.pm/nerves/getting-started.html
+- Official website: https://nerves-project.org/
+- Forum: https://elixirforum.com/c/nerves-forum
+- Discussion Slack elixir-lang #nerves ([Invite](https://elixir-slackin.herokuapp.com/))
+- Source: https://github.com/nerves-project/nerves
