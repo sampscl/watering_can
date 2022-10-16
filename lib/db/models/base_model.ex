@@ -83,8 +83,25 @@ defmodule Db.Models.BaseModel do
       @doc false
       def base_build_query(params) do
         Enum.reduce(params, Ecto.Query.from(record in __MODULE__), fn
-          {k, nil}, acc -> Ecto.Query.from(record in acc, where: is_nil(field(record, ^k)))
-          {k, v}, acc -> Ecto.Query.from(record in acc, where: field(record, ^k) == ^v)
+          {k, nil}, acc ->
+            Ecto.Query.from(record in acc, where: is_nil(field(record, ^k)))
+
+          {:order_by, fields}, acc ->
+            Ecto.Query.order_by(acc, ^fields)
+
+          {:order_by_ci, fields}, acc ->
+            Enum.reduce(fields, acc, fn {direction, field_name}, inner_acc ->
+              Ecto.Query.from(inner_acc, order_by: ^{direction, Ecto.Query.dynamic([__MODULE__], fragment("lower(?)", field(__MODULE__, ^field_name)))})
+            end)
+
+          {:limit, count}, acc ->
+            Ecto.Query.limit(acc, ^count)
+
+          {:offset, count}, acc ->
+            Ecto.Query.offset(acc, ^count)
+
+          {k, v}, acc ->
+            Ecto.Query.from(record in acc, where: field(record, ^k) == ^v)
         end)
       end
 
@@ -172,7 +189,13 @@ defmodule Db.Models.BaseModel do
         @doc """
         Get all matching records
         ## Parameters
-        - `params` Keyword list of `[{:column_name, value}]` to filter all records by
+        - `params` Keyword list:
+          * `[{:column_name, value}]` to filter records
+          * `[{:column_name, nil}]` to filter records with nil values
+          * `[{:limit, count]` limit to count records
+          * `[{:offset, count]` offset count records into the result set
+          * `[{:order_by, order_by]` order results; see https://hexdocs.pm/ecto/Ecto.Query.html#order_by/3
+          * `[{:order_by_ci, order_by]` order results with case-insensitive string compares; otherwise just like `order_by`
         ## Returns
         - `[model]` A list of models filtered by `params`.
         """
