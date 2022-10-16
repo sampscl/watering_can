@@ -2,7 +2,7 @@
 [
   inputs: [
     "{mix,.formatter}.exs",
-    "{config,lib,espec}/**/*.{ex,exs}",
+    "{config,lib,spec}/**/*.{ex,exs}",
     "rootfs_overlay/etc/iex.exs"
   ],
   subdirectories: ["priv/*/migrations"],
