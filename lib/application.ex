@@ -24,11 +24,11 @@ defmodule WateringCan.Application do
       [
         # Children for all targets
         Db.Repo.child_spec([]),
-        Web.Telemetry,
+        Web.Telemetry.child_spec([]),
         # Start the PubSub system
-        {Phoenix.PubSub, name: Web.PubSub},
+        Phoenix.PubSub.child_spec(name: Web.PubSub),
         # Start the Endpoint (http/https)
-        Web.Endpoint
+        Web.Endpoint.child_spec([])
       ] ++ children(target())
 
     Supervisor.start_link(children, opts)
