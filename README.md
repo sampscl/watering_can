@@ -33,3 +33,14 @@ To start your Nerves app:
 - Forum: https://elixirforum.com/c/nerves-forum
 - Discussion Slack elixir-lang #nerves ([Invite](https://elixir-slackin.herokuapp.com/))
 - Source: https://github.com/nerves-project/nerves
+
+## Running in qemu
+
+```bash
+MIX_TARGET=x86_64 mix firmware.image scratch/x86_64.img
+qemu-system-x86_64 \
+    -drive file="scratch/x86_64.img",if=virtio,format=raw \
+    -net nic,model=virtio \
+    -net user,hostfwd=tcp::10022-:22 \
+    -serial stdio
+```
