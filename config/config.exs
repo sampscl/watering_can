@@ -30,6 +30,30 @@ config :logger, backends: [RingLogger]
 config :watering_can,
   ecto_repos: [Db.Repo]
 
+# Configures the endpoint
+config :watering_can, Web.Endpoint,
+  url: [host: "localhost"],
+  render_errors: [view: Web.ErrorView, accepts: ~w(html json), layout: false],
+  pubsub_server: Web.PubSub,
+  live_view: [signing_salt: "TAqhJq0D0m1vnE8CVaRDmz3OLo9+8kDK"]
+
+# Configure esbuild (the version is required)
+config :esbuild,
+  version: "0.14.29",
+  default: [
+    args: ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
+  ]
+
+# Use Jason for JSON parsing in Phoenix
+config :phoenix, :json_library, Jason
+
+# disable phoenix logging (we'll do it ourselves with telemetry)
+config :phoenix, :logger, false
+
+import_config "#{config_env()}.exs"
+
 if Mix.target() == :host do
   import_config "host.exs"
 else

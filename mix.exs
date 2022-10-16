@@ -27,6 +27,7 @@ defmodule WateringCan.MixProject do
       app: @app,
       version: version(),
       elixir: "~> 1.13",
+      elixirc_paths: elixirc_paths(Mix.env()),
       archives: [nerves_bootstrap: "~> 1.11"],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -37,7 +38,7 @@ defmodule WateringCan.MixProject do
       # this makes dialyzer include mix behaviors in the PLT so that
       # dialyxir doesn't complain about our mix tasks and unknown
       # mix module behaviors, thanks Stack Overflow: https://stackoverflow.com/questions/51208388/how-to-fix-dialyzer-callback-info-about-the-behaviour-is-not-available
-      dialyzer: [plt_add_apps: [:mix]],
+      dialyzer: [plt_add_apps: [:mix]]
     ]
   end
 
@@ -49,6 +50,7 @@ defmodule WateringCan.MixProject do
         "ecto.seed"
       ],
       espec: &espec/1,
+      "assets.deploy": ["esbuild default --minify", "phx.digest"],
       compliance: [
         "compile",
         "dialyzer",
@@ -62,11 +64,15 @@ defmodule WateringCan.MixProject do
     Mix.Task.run("espec", args ++ ["--no-start"])
   end
 
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
       mod: {WateringCan.Application, []},
-      extra_applications: [:sasl, :logger, :runtime_tools]
+      extra_applications: [:sasl, :logger, :runtime_tools, :os_mon]
     ]
   end
 
@@ -106,6 +112,21 @@ defmodule WateringCan.MixProject do
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
       {:ecto_sqlite3, "~> 0.8"},
       {:telemetry, "~> 1.1"},
+
+      # web / phoenix
+      {:phoenix, "~> 1.6"},
+      {:phoenix_ecto, "~> 4.4"},
+      {:phoenix_html, "~> 3.0"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:phoenix_live_view, "~> 0.17"},
+      {:floki, ">= 0.30.0", only: :test},
+      {:phoenix_live_dashboard, "~> 0.6"},
+      {:esbuild, "~> 0.4", runtime: Mix.env() == :dev},
+      {:telemetry_metrics, "~> 0.6"},
+      {:telemetry_poller, "~> 1.0"},
+      {:gettext, "~> 0.18"},
+      {:jason, "~> 1.2"},
+      {:plug_cowboy, "~> 2.5"}
     ]
   end
 

@@ -23,9 +23,12 @@ defmodule WateringCan.Application do
     children =
       [
         # Children for all targets
-        # Starts a worker by calling: WateringCan.Worker.start_link(arg)
-        # {WateringCan.Worker, arg},
         Db.Repo.child_spec([]),
+        Web.Telemetry,
+        # Start the PubSub system
+        {Phoenix.PubSub, name: Web.PubSub},
+        # Start the Endpoint (http/https)
+        Web.Endpoint
       ] ++ children(target())
 
     Supervisor.start_link(children, opts)
