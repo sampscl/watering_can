@@ -1,16 +1,14 @@
-defmodule Db.Models.Zone do
+defmodule Db.Models.SoilMoistureSensor do
   @moduledoc """
-  Zone model
+  SoilMoistureSensor model
   """
   use Db.Models.BaseModel
-
-  @insert_fields ~w/num friendly_name configuration/a
-  @required_fields ~w/num/a
+  @insert_fields ~w/configuration friendly_name/a
+  @required_fields ~w//a
   @update_fields @insert_fields
 
-  schema "zones" do
-    field(:num, :integer)
-    field(:friendly_name, :string, default: "")
+  schema "soil_moisture_sensors" do
+    field(:friendly_name, :string, default: "soil_moisture_sensor")
     field(:configuration, Db.Types.Term, default: %{})
     timestamps()
   end
