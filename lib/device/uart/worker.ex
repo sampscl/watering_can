@@ -81,7 +81,7 @@ defmodule Device.Uart.Worker do
     {state, :noreply}
   end
 
-  @spec protocol_framer(Db.Models.Uart.t()) :: module()
+  @spec protocol_framer(Db.Models.Uart.t()) :: module() | {module(), any()}
   def protocol_framer(model)
-  def protocol_framer(%{protocol: :watering_can} = _model), do: Nerves.UART.Framing.Line
+  def protocol_framer(%{protocol: :watering_can, name: name} = _model), do: {Device.Uart.WateringCanFramer, name}
 end

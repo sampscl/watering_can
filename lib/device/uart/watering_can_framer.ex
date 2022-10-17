@@ -12,12 +12,13 @@ defmodule Device.Uart.WateringCanFramer do
 
   defmodule State do
     @moduledoc false
-    @keys ~w/rx_buf/a
+    @keys ~w/rx_buf name/a
     @enforce_keys @keys
     defstruct @keys
 
     @type t() :: %__MODULE__{
-            rx_buf: binary()
+            rx_buf: binary(),
+            name: String.t()
           }
   end
 
@@ -44,7 +45,7 @@ defmodule Device.Uart.WateringCanFramer do
   def frame_timeout(state), do: {:ok, [], %State{state | rx_buf: <<>>}}
 
   @impl Nerves.UART.Framing
-  def init(_args), do: {:ok, %State{rx_buf: <<>>}}
+  def init(name), do: {:ok, %State{rx_buf: <<>>, name: name}}
 
   @impl Nerves.UART.Framing
   def remove_framing(new_data, state) do
