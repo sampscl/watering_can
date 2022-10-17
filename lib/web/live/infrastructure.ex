@@ -1,4 +1,7 @@
 defmodule Web.Live.Infrastructure do
+  @moduledoc """
+  Live view of infrastructure
+  """
   use Web, :live_view
   use Utils.Logger, id: :web
 

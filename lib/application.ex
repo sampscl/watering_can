@@ -24,6 +24,7 @@ defmodule WateringCan.Application do
       [
         # Children for all targets
         Db.Repo.child_spec([]),
+        Device.Sup.child_spec(:ok),
         Web.Telemetry.child_spec([]),
         # Start the PubSub system
         Phoenix.PubSub.child_spec(name: Web.PubSub),
