@@ -1,12 +1,29 @@
 defmodule Device.Uart.WateringCanFramer do
   @moduledoc """
-  Each message is framed like so, with 2 marking the start of message and 3 marking the end of message
-  <<2::size(8), body_len_bytes::integer-little-unsigned-size(16), body::bytes(body_len_bytes), xor_chk::integer-little-unsigned-size(8), 3::size(8)>>
+  UART framing behaviour for the watering can protocol.
+
+  ## Framing
+  Each message is framed with 2 marking the start of message and 3 marking the end of message:
+  <<
+    2::size(8),
+    body_len_bytes::integer-little-unsigned-size(16),
+    body::bytes-size(body_len_bytes),
+    xor_chk::integer-little-unsigned-size(8),
+    3::size(8)
+  >>
 
   Generally:
   <<SOM, BODY_LEN, BODY, CHK, EOM, maybe-more>>
 
   Where the xor_chk is the xored value of all body bytes; kept simple for simplicity's sake :)
+
+  ## Telemetry
+  The following telemetry is produced:
+
+    * `[Device.Uart.WateringCanFramer, :add_framing]` with metadata `%{framed: <<framed_data>>, name: uart_name}`
+    * `[Device.Uart.WateringCanFramer, :flush]` with metadata `%{direction: direction, name: uart_name}`
+    * `[Device.Uart.WateringCanFramer, :frame_timeout]` with metadata `%{rx_buf: <<buf>>, name: uart_name}`
+    * a span: `[Device.Uart.WateringCanFramer, :remove_framing]` with metadata `%{rx_buf: <<buf>>, name: uart_name, result: {:ok, deframed, new_state} | {:in_frame, deframed, new_state}}`
   """
   @behaviour Nerves.UART.Framing
 
@@ -34,25 +51,43 @@ defmodule Device.Uart.WateringCanFramer do
       3::size(8)
     >>
 
+    :telemetry.execute([Device.Uart.WateringCanFramer, :add_framing], %{utc_now: DateTime.utc_now()}, %{framed: framed, name: state.name})
     {:ok, framed, state}
   end
 
   @impl Nerves.UART.Framing
-  def flush(direction, state) when direction in ~w/receive both/a, do: %State{state | rx_buf: <<>>}
-  def flush(_direction, state), do: state
+  def flush(direction, state) do
+    :telemetry.execute([Device.Uart.WateringCanFramer, :flush], %{utc_now: DateTime.utc_now()}, %{direction: direction, name: state.name})
+
+    if direction in ~w/receive both/a do
+      %State{state | rx_buf: <<>>}
+    else
+      state
+    end
+  end
 
   @impl Nerves.UART.Framing
-  def frame_timeout(state), do: {:ok, [], %State{state | rx_buf: <<>>}}
+  def frame_timeout(state) do
+    :telemetry.execute([Device.Uart.WateringCanFramer, :frame_timeout], %{utc_now: DateTime.utc_now()}, %{rx_buf: state.rx_buf, name: state.name})
+    {:ok, [], %State{state | rx_buf: <<>>}}
+  end
 
   @impl Nerves.UART.Framing
   def init(name), do: {:ok, %State{rx_buf: <<>>, name: name}}
 
   @impl Nerves.UART.Framing
   def remove_framing(new_data, state) do
-    case reduce_buf(state.rx_buf <> new_data) do
-      {<<>>, deframed} -> {:ok, deframed, %State{state | rx_buf: <<>>}}
-      {remainder, deframed} -> {:in_frame, deframed, %State{state | rx_buf: remainder}}
-    end
+    :telemetry.span([Device.Uart.WateringCanFramer, :remove_framing], %{}, fn ->
+      rx_buf = state.rx_buf <> new_data
+
+      result =
+        case reduce_buf(rx_buf) do
+          {<<>>, deframed} -> {:ok, deframed, %State{state | rx_buf: <<>>}}
+          {remainder, deframed} -> {:in_frame, deframed, %State{state | rx_buf: remainder}}
+        end
+
+      {result, %{rx_buf: rx_buf, name: state.uart_name, result: result}}
+    end)
   end
 
   @spec chk(bitstring()) :: integer()
