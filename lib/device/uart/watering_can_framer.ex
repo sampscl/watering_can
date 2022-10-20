@@ -18,7 +18,7 @@ defmodule Device.Uart.WateringCanFramer do
   Where the xor_chk is the xored value of all body bytes; kept simple for simplicity's sake :)
 
   ## Telemetry
-  The following telemetry is produced:
+  The following telemetry is produced, the events' measurements include %{utc_now: DateTime.t()}:
 
     * `[Device.Uart.WateringCanFramer, :add_framing]` with metadata `%{framed: <<framed_data>>, name: uart_name}`
     * `[Device.Uart.WateringCanFramer, :flush]` with metadata `%{direction: direction, name: uart_name}`
@@ -77,13 +77,16 @@ defmodule Device.Uart.WateringCanFramer do
 
   @impl Nerves.UART.Framing
   def remove_framing(new_data, state) do
-    :telemetry.span([Device.Uart.WateringCanFramer, :remove_framing], %{}, fn ->
+    :telemetry.span([Device.Uart.WateringCanFramer, :remove_framing], %{new_data: new_data, rx_buf: state.rx_buf, name: state.uart_name}, fn ->
       rx_buf = state.rx_buf <> new_data
 
       result =
         case reduce_buf(rx_buf) do
-          {<<>>, deframed} -> {:ok, deframed, %State{state | rx_buf: <<>>}}
-          {remainder, deframed} -> {:in_frame, deframed, %State{state | rx_buf: remainder}}
+          {<<>>, deframed} ->
+            {:ok, deframed, %{state | rx_buf: <<>>}}
+
+          {remainder, deframed} ->
+            {:in_frame, deframed, %{state | rx_buf: remainder}}
         end
 
       {result, %{rx_buf: rx_buf, name: state.uart_name, result: result}}
