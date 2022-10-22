@@ -2,7 +2,7 @@ defmodule Telemetry.Db do
   @moduledoc """
   Telemetry handlers for the database
   """
-  use Utils.Logger, id: :db
+  require Logger
 
   @doc false
   def handle_init(_, measurements, _metadata, _config) do
@@ -22,6 +22,6 @@ defmodule Telemetry.Db do
         end
     }
 
-    log_debug(inspect(log_items))
+    Logger.debug(inspect(log_items))
   end
 end

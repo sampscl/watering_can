@@ -8,6 +8,8 @@ defmodule WateringCan.Application do
 
   @impl true
   def start(_type, _args) do
+    Logger.info("Starting")
+
     # telemetry
     handlers = [
       {[:ecto, :repo, :init], &Telemetry.Db.handle_init/4},

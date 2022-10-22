@@ -3,7 +3,7 @@ defmodule Web.Live.Infrastructure do
   Live view of infrastructure
   """
   use Web, :live_view
-  use Utils.Logger, id: :web
+  require Logger
 
   def render(assigns) do
     ~H"""
@@ -21,7 +21,7 @@ defmodule Web.Live.Infrastructure do
   end
 
   def handle_info(%{topic: _topic, payload: _payload} = msg, socket) do
-    log_debug(inspect(msg, pretty: true, limit: :infinity))
+    Logger.debug(inspect(msg, pretty: true, limit: :infinity))
     {:noreply, socket}
   end
 end
