@@ -4,16 +4,18 @@ defmodule Device.Uart.WateringCanFramerSpec do
 
   alias Device.Uart.WateringCanFramer, as: Framer
 
+  def start_of_msg, do: <<2::size(8)>>
+  def end_of_msg, do: <<3::size(8)>>
+  def partial_msg, do: start_of_msg()
+  def buffer_of_garbage, do: <<0xFF::size(128)>>
+
   def valid_frame do
     body = <<0xDEADBEEF::integer-little-unsigned-size(32)>>
 
-    framed = <<
-      2::size(8),
-      byte_size(body)::integer-little-unsigned-size(16),
-      body::bitstring,
-      Framer.chk(body)::integer-little-unsigned-size(8),
-      3::size(8)
-    >>
+    framed =
+      start_of_msg() <>
+        <<byte_size(body)::integer-little-unsigned-size(16), body::bitstring, Framer.chk(body)::integer-little-unsigned-size(8)>> <>
+        end_of_msg()
 
     {framed, body}
   end
@@ -35,18 +37,18 @@ defmodule Device.Uart.WateringCanFramerSpec do
     end
 
     it "rejects mis-framed data but maintains accumulation" do
-      expect(Framer.reduce_buf(<<0xFF::size(128)>>, []) |> to(eq({<<>>, []})))
-      expect(Framer.reduce_buf(<<0xFF::size(128)>>, ["foo"]) |> to(eq({<<>>, ["foo"]})))
+      expect(Framer.reduce_buf(buffer_of_garbage(), []) |> to(eq({<<>>, []})))
+      expect(Framer.reduce_buf(buffer_of_garbage(), ["foo"]) |> to(eq({<<>>, ["foo"]})))
     end
 
     it "identifies partial messages and maintains accumulation" do
-      expect(Framer.reduce_buf(<<2::size(8)>>, []) |> to(eq({<<2::size(8)>>, []})))
-      expect(Framer.reduce_buf(<<2::size(8)>>, ["foo"]) |> to(eq({<<2::size(8)>>, ["foo"]})))
+      expect(Framer.reduce_buf(partial_msg(), []) |> to(eq({partial_msg(), []})))
+      expect(Framer.reduce_buf(partial_msg(), ["foo"]) |> to(eq({partial_msg(), ["foo"]})))
     end
 
     it "rejects misframed data, identifies partial messages and maintains accumulation" do
-      expect(Framer.reduce_buf(<<0xFF::size(128), 2::size(8)>>, []) |> to(eq({<<2::size(8)>>, []})))
-      expect(Framer.reduce_buf(<<0xFF::size(128), 2::size(8)>>, ["foo"]) |> to(eq({<<2::size(8)>>, ["foo"]})))
+      expect(Framer.reduce_buf(buffer_of_garbage() <> partial_msg(), []) |> to(eq({partial_msg(), []})))
+      expect(Framer.reduce_buf(buffer_of_garbage() <> partial_msg(), ["foo"]) |> to(eq({partial_msg(), ["foo"]})))
     end
 
     it "deframes a valid message and maintains accumulation" do
@@ -63,8 +65,8 @@ defmodule Device.Uart.WateringCanFramerSpec do
 
     it "deframes a valid message, rejects misframed data, identifies partial messages and maintains accumulation" do
       {frame, body} = valid_frame()
-      expect(Framer.reduce_buf(frame <> <<0xFF::size(128), 2::size(8)>>, []) |> to(eq({<<2::size(8)>>, [body]})))
-      expect(Framer.reduce_buf(frame <> <<0xFF::size(128), 2::size(8)>>, ["foo"]) |> to(eq({<<2::size(8)>>, ["foo", body]})))
+      expect(Framer.reduce_buf(frame <> buffer_of_garbage() <> start_of_msg(), [])) |> to(eq({start_of_msg(), [body]}))
+      expect(Framer.reduce_buf(frame <> buffer_of_garbage() <> start_of_msg(), ["foo"])) |> to(eq({start_of_msg(), ["foo", body]}))
     end
   end
 end
