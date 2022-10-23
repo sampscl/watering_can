@@ -49,7 +49,7 @@ defmodule WateringCan.MixProject do
         "ecto.migrate",
         "ecto.seed"
       ],
-      espec: &espec/1,
+      # espec: &espec/1,
       "assets.deploy": ["esbuild default --minify", "phx.digest"],
       compliance: [
         "compile",

@@ -1,17 +1,16 @@
-defmodule Db.Models.Zone do
+defmodule Db.Models.ZonesControlAreas do
   @moduledoc """
-  Zone model
+  Association table between zones and control areas
   """
   use Db.Models.BaseModel
 
-  @insert_fields ~w/num friendly_name configuration/a
-  @required_fields ~w/num/a
+  @insert_fields ~w/zone_id control_area_id/a
+  @required_fields ~w/zone_id control_area_id/a
   @update_fields @insert_fields
 
-  schema "zones" do
-    field(:num, :integer)
-    field(:friendly_name, :string, default: "")
-    field(:configuration, Db.Types.Term, default: %{})
+  schema "zones_control_areas" do
+    belongs_to(:zone, Db.Models.Zone, foreign_key: :zone_id)
+    belongs_to(:control_area, Db.Models.ControlArea, foreign_key: :control_area_id)
     timestamps()
   end
 
@@ -22,7 +21,6 @@ defmodule Db.Models.Zone do
     %__MODULE__{}
     |> Ecto.Changeset.cast(params, @insert_fields, empty_values: [])
     |> Ecto.Changeset.validate_required(@required_fields)
-    |> Ecto.Changeset.unique_constraint(:num)
   end
 
   @doc false
@@ -31,6 +29,5 @@ defmodule Db.Models.Zone do
   def update_changeset(model, params) do
     model
     |> Ecto.Changeset.cast(params, @update_fields)
-    |> Ecto.Changeset.unique_constraint(:num)
   end
 end

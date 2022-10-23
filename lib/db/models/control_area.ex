@@ -1,17 +1,23 @@
-defmodule Db.Models.Zone do
+defmodule Db.Models.ControlArea do
   @moduledoc """
-  Zone model
+  Control area model
   """
   use Db.Models.BaseModel
 
-  @insert_fields ~w/num friendly_name configuration/a
-  @required_fields ~w/num/a
+  @insert_fields ~w/friendly_name/a
+  @required_fields ~w//a
   @update_fields @insert_fields
 
-  schema "zones" do
-    field(:num, :integer)
-    field(:friendly_name, :string, default: "")
-    field(:configuration, Db.Types.Term, default: %{})
+  schema "control_areas" do
+    field(:friendly_name, :string, default: "control_area")
+    many_to_many(:zones, Db.Models.Zone, join_through: Db.Models.ZonesControlAreas, join_keys: [control_area_id: :id, zone_id: :id], on_replace: :delete)
+
+    many_to_many(:soil_moisture_sensors, Db.Models.SoilMoistureSensor,
+      join_through: Db.Models.ZonesSoilMoistureSensors,
+      join_keys: [control_area_id: :id, soil_moisture_sensor_id: :id],
+      on_replace: :delete
+    )
+
     timestamps()
   end
 
@@ -22,7 +28,6 @@ defmodule Db.Models.Zone do
     %__MODULE__{}
     |> Ecto.Changeset.cast(params, @insert_fields, empty_values: [])
     |> Ecto.Changeset.validate_required(@required_fields)
-    |> Ecto.Changeset.unique_constraint(:num)
   end
 
   @doc false
@@ -31,6 +36,5 @@ defmodule Db.Models.Zone do
   def update_changeset(model, params) do
     model
     |> Ecto.Changeset.cast(params, @update_fields)
-    |> Ecto.Changeset.unique_constraint(:num)
   end
 end

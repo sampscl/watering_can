@@ -1,6 +1,6 @@
 defmodule Device.Uart.WateringCanFramerSpec do
   @moduledoc false
-  use ESpec
+  use ESpec, async: true
 
   alias Device.Uart.WateringCanFramer, as: Framer
 

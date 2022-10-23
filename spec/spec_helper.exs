@@ -1,9 +1,11 @@
-ESpec.configure fn(config) ->
-  config.before fn(tags) ->
-    {:shared,[] , tags: tags}
-  end
+ESpec.configure(fn config ->
+  Ecto.Adapters.SQL.Sandbox.mode(Db.Repo, :manual)
 
-  config.finally fn(_shared) ->
+  config.before(fn tags ->
+    {:shared, [], tags: tags}
+  end)
+
+  config.finally(fn _shared ->
     :ok
-  end
-end
+  end)
+end)
