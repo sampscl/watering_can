@@ -12,12 +12,6 @@ defmodule Db.Models.ControlArea do
     field(:friendly_name, :string, default: "control_area")
     many_to_many(:zones, Db.Models.Zone, join_through: Db.Models.ZonesControlAreas, join_keys: [control_area_id: :id, zone_id: :id], on_replace: :delete)
 
-    many_to_many(:soil_moisture_sensors, Db.Models.SoilMoistureSensor,
-      join_through: Db.Models.ZonesSoilMoistureSensors,
-      join_keys: [control_area_id: :id, soil_moisture_sensor_id: :id],
-      on_replace: :delete
-    )
-
     timestamps()
   end
 

@@ -5,6 +5,7 @@ defmodule Db.Repo.Migrations.AddSoilMoistureSensors do
     create table(:soil_moisture_sensors) do
       add(:friendly_name, :string, size: 80)
       add(:configuration, :binary, null: false)
+      timestamps()
     end
   end
 end

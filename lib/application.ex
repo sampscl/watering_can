@@ -33,21 +33,23 @@ defmodule WateringCan.Application do
     Db.Release.seed()
 
     # supervise the app
+    # See https://hexdocs.pm/elixir/Supervisor.html
+    # for other strategies and supported options
     children =
       [
         # Children for all targets
+        Registry.child_spec(keys: :duplicate, name: WateringCan.Registry),
+        Task.Supervisor.child_spec(name: WateringCan.Task.Supervisor),
         Db.Repo.child_spec([]),
         Device.Sup.child_spec(:ok),
         Web.Telemetry.child_spec([]),
-        # Start the PubSub system
         Phoenix.PubSub.child_spec(name: Web.PubSub),
-        # Start the Endpoint (http/https)
         Web.Endpoint.child_spec([])
       ] ++ children(target())
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    Supervisor.start_link(children, strategy: :one_for_one, name: WateringCan.Supervisor)
+    result = Supervisor.start_link(children, strategy: :one_for_one, name: WateringCan.Supervisor)
+    :ok = start_initial_tasks()
+    result
   end
 
   # List all child processes to be supervised
@@ -69,5 +71,13 @@ defmodule WateringCan.Application do
 
   def target() do
     Application.get_env(:watering_can, :target)
+  end
+
+  def start_initial_tasks do
+    Task.Supervisor.start_child(WateringCan.Task.Supervisor, fn ->
+      Enum.each(Db.Models.Uart.all(), &Device.Uart.Sup.start_worker(&1))
+    end)
+
+    :ok
   end
 end

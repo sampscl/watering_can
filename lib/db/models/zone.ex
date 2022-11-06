@@ -12,6 +12,13 @@ defmodule Db.Models.Zone do
     field(:num, :integer)
     field(:friendly_name, :string, default: "")
     field(:configuration, Db.Types.Term, default: %{})
+
+    many_to_many(:soil_moisture_sensors, Db.Models.SoilMoistureSensor,
+      join_through: Db.Models.ZonesSoilMoistureSensors,
+      join_keys: [zone_id: :id, soil_moisture_sensor_id: :id],
+      on_replace: :delete
+    )
+
     timestamps()
   end
 
