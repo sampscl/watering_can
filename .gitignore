@@ -27,3 +27,6 @@ priv/db
 
 # no scratch files
 scratch/
+
+# no node_modules
+node_modules/
