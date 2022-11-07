@@ -14,12 +14,12 @@ defmodule WateringCan.Application do
     handlers = [
       {[:ecto, :repo, :init], &Telemetry.Db.handle_init/4},
       {[:db, :repo, :query], &Telemetry.Db.handle_query/4},
-      {[Device.Uart.WateringCanFramer, :add_framing], &Telemetry.Device.Uart.WateringCanFramer.handle_add_framing/4},
-      {[Device.Uart.WateringCanFramer, :flush], &Telemetry.Device.Uart.WateringCanFramer.handle_flush/4},
-      {[Device.Uart.WateringCanFramer, :frame_timeout], &Telemetry.Device.Uart.WateringCanFramer.handle_frame_timeout/4},
-      {[Device.Uart.WateringCanFramer, :remove_framing, :start], &Telemetry.Device.Uart.WateringCanFramer.handle_remove_framing_start/4},
-      {[Device.Uart.WateringCanFramer, :remove_framing, :stop], &Telemetry.Device.Uart.WateringCanFramer.handle_remove_framing_stop/4},
-      {[Device.Uart.WateringCanFramer, :remove_framing, :exception], &Telemetry.Device.Uart.WateringCanFramer.handle_remove_framing_exception/4}
+      {[Comms.Uart.WateringCanFramer, :add_framing], &Telemetry.Comms.Uart.WateringCanFramer.handle_add_framing/4},
+      {[Comms.Uart.WateringCanFramer, :flush], &Telemetry.Comms.Uart.WateringCanFramer.handle_flush/4},
+      {[Comms.Uart.WateringCanFramer, :frame_timeout], &Telemetry.Comms.Uart.WateringCanFramer.handle_frame_timeout/4},
+      {[Comms.Uart.WateringCanFramer, :remove_framing, :start], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_start/4},
+      {[Comms.Uart.WateringCanFramer, :remove_framing, :stop], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_stop/4},
+      {[Comms.Uart.WateringCanFramer, :remove_framing, :exception], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_exception/4}
     ]
 
     :ok =
@@ -41,7 +41,7 @@ defmodule WateringCan.Application do
         Registry.child_spec(keys: :duplicate, name: WateringCan.Registry),
         Task.Supervisor.child_spec(name: WateringCan.Task.Supervisor),
         Db.Repo.child_spec([]),
-        Device.Sup.child_spec(:ok),
+        Comms.Sup.child_spec(:ok),
         Web.Telemetry.child_spec([]),
         Phoenix.PubSub.child_spec(name: Web.PubSub),
         Web.Endpoint.child_spec([])
@@ -75,7 +75,7 @@ defmodule WateringCan.Application do
 
   def start_initial_tasks do
     Task.Supervisor.start_child(WateringCan.Task.Supervisor, fn ->
-      Enum.each(Db.Models.Uart.all(), &Device.Uart.Sup.start_worker(&1))
+      Enum.each(Db.Models.Uart.all(), &Comms.Uart.Sup.start_worker(&1))
     end)
 
     :ok

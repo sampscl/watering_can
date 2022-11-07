@@ -1,4 +1,4 @@
-defmodule Telemetry.Device.Uart.WateringCanFramer do
+defmodule Telemetry.Comms.Uart.WateringCanFramer do
   @moduledoc """
   Telemetry handlers for the watering can uart device framer
   """

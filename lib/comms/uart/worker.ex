@@ -1,4 +1,4 @@
-defmodule Device.Uart.Worker do
+defmodule Comms.Uart.Worker do
   @moduledoc """
   Worker for uarts
   """
@@ -83,5 +83,5 @@ defmodule Device.Uart.Worker do
 
   @spec protocol_framer(Db.Models.Uart.t()) :: module() | {module(), any()}
   def protocol_framer(model)
-  def protocol_framer(%{protocol: :watering_can, name: name} = _model), do: {Device.Uart.WateringCanFramer, name}
+  def protocol_framer(%{protocol: :watering_can, name: name} = _model), do: {Comms.Uart.WateringCanFramer, name}
 end

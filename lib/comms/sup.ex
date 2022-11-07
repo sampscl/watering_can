@@ -1,4 +1,4 @@
-defmodule Device.Sup do
+defmodule Comms.Sup do
   @moduledoc """
   Supervisor for device tree
   """
@@ -15,7 +15,7 @@ defmodule Device.Sup do
   @doc false
   def children do
     [
-      Device.Uart.Sup.child_spec(:ok)
+      Comms.Uart.Sup.child_spec(:ok)
     ]
   end
 end

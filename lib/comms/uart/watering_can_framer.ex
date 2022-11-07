@@ -1,4 +1,4 @@
-defmodule Device.Uart.WateringCanFramer do
+defmodule Comms.Uart.WateringCanFramer do
   @moduledoc """
   UART framing behaviour for the watering can protocol.
 
@@ -20,10 +20,10 @@ defmodule Device.Uart.WateringCanFramer do
   ## Telemetry
   The following telemetry is produced, the events' measurements include %{utc_now: DateTime.t()}:
 
-    * `[Device.Uart.WateringCanFramer, :add_framing]` with metadata `%{framed: <<framed_data>>, name: uart_name}`
-    * `[Device.Uart.WateringCanFramer, :flush]` with metadata `%{direction: direction, name: uart_name}`
-    * `[Device.Uart.WateringCanFramer, :frame_timeout]` with metadata `%{rx_buf: <<buf>>, name: uart_name}`
-    * a span: `[Device.Uart.WateringCanFramer, :remove_framing]` with metadata `%{rx_buf: <<buf>>, name: uart_name, result: {:ok, deframed, new_state} | {:in_frame, deframed, new_state}}`
+    * `[Comms.Uart.WateringCanFramer, :add_framing]` with metadata `%{framed: <<framed_data>>, name: uart_name}`
+    * `[Comms.Uart.WateringCanFramer, :flush]` with metadata `%{direction: direction, name: uart_name}`
+    * `[Comms.Uart.WateringCanFramer, :frame_timeout]` with metadata `%{rx_buf: <<buf>>, name: uart_name}`
+    * a span: `[Comms.Uart.WateringCanFramer, :remove_framing]` with metadata `%{rx_buf: <<buf>>, name: uart_name, result: {:ok, deframed, new_state} | {:in_frame, deframed, new_state}}`
   """
   @behaviour Nerves.UART.Framing
 
@@ -51,13 +51,13 @@ defmodule Device.Uart.WateringCanFramer do
       3::size(8)
     >>
 
-    :telemetry.execute([Device.Uart.WateringCanFramer, :add_framing], %{utc_now: DateTime.utc_now()}, %{framed: framed, name: state.name})
+    :telemetry.execute([Comms.Uart.WateringCanFramer, :add_framing], %{utc_now: DateTime.utc_now()}, %{framed: framed, name: state.name})
     {:ok, framed, state}
   end
 
   @impl Nerves.UART.Framing
   def flush(direction, state) do
-    :telemetry.execute([Device.Uart.WateringCanFramer, :flush], %{utc_now: DateTime.utc_now()}, %{direction: direction, name: state.name})
+    :telemetry.execute([Comms.Uart.WateringCanFramer, :flush], %{utc_now: DateTime.utc_now()}, %{direction: direction, name: state.name})
 
     if direction in ~w/receive both/a do
       %State{state | rx_buf: <<>>}
@@ -68,7 +68,7 @@ defmodule Device.Uart.WateringCanFramer do
 
   @impl Nerves.UART.Framing
   def frame_timeout(state) do
-    :telemetry.execute([Device.Uart.WateringCanFramer, :frame_timeout], %{utc_now: DateTime.utc_now()}, %{rx_buf: state.rx_buf, name: state.name})
+    :telemetry.execute([Comms.Uart.WateringCanFramer, :frame_timeout], %{utc_now: DateTime.utc_now()}, %{rx_buf: state.rx_buf, name: state.name})
     {:ok, [], %State{state | rx_buf: <<>>}}
   end
 
@@ -77,7 +77,7 @@ defmodule Device.Uart.WateringCanFramer do
 
   @impl Nerves.UART.Framing
   def remove_framing(new_data, state) do
-    :telemetry.span([Device.Uart.WateringCanFramer, :remove_framing], %{new_data: new_data, rx_buf: state.rx_buf, name: state.uart_name}, fn ->
+    :telemetry.span([Comms.Uart.WateringCanFramer, :remove_framing], %{new_data: new_data, rx_buf: state.rx_buf, name: state.uart_name}, fn ->
       rx_buf = state.rx_buf <> new_data
 
       result =

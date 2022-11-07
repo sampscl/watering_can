@@ -1,8 +1,8 @@
-defmodule Device.Uart.WateringCanFramerSpec do
+defmodule Comms.Uart.WateringCanFramerSpec do
   @moduledoc false
   use ESpec, async: true
 
-  alias Device.Uart.WateringCanFramer, as: Framer
+  alias Comms.Uart.WateringCanFramer, as: Framer
 
   def start_of_msg, do: <<2::size(8)>>
   def end_of_msg, do: <<3::size(8)>>
