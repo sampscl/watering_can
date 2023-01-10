@@ -38,6 +38,7 @@ defmodule Db.Models.Uart do
     |> Ecto.Changeset.validate_inclusion(:parity, @valid_parity)
     |> Ecto.Changeset.validate_inclusion(:flow_control, @valid_flow_control)
     |> Ecto.Changeset.validate_inclusion(:protocol, @valid_protocol)
+    |> Ecto.Changeset.unique_constraint(:name)
   end
 
   @doc false
@@ -51,5 +52,6 @@ defmodule Db.Models.Uart do
     |> Ecto.Changeset.validate_inclusion(:parity, @valid_parity)
     |> Ecto.Changeset.validate_inclusion(:flow_control, @valid_flow_control)
     |> Ecto.Changeset.validate_inclusion(:protocol, @valid_protocol)
+    |> Ecto.Changeset.unique_constraint(:name)
   end
 end

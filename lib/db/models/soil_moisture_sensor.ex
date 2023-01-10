@@ -9,6 +9,8 @@ defmodule Db.Models.SoilMoistureSensor do
 
   schema "soil_moisture_sensors" do
     field(:friendly_name, :string, default: "soil_moisture_sensor")
+    # configuration field is denormalized and weakly typed; see
+    # `Device.SoilMoistureSensor.Worker.config_t()`.
     field(:configuration, Db.Types.Term, default: %{})
     timestamps()
   end

@@ -1,6 +1,7 @@
-defmodule Comms.Sup do
+defmodule Device.Sup do
   @moduledoc """
-  Supervisor for device tree
+  Supervisor for devices regardless of their
+  comms system
   """
   use Supervisor
   require Logger
@@ -15,7 +16,7 @@ defmodule Comms.Sup do
   @doc false
   def children do
     [
-      Comms.Uart.Sup.child_spec(:ok)
+      Device.SoilMoistureSensor.Sup.child_spec(:ok)
     ]
   end
 end

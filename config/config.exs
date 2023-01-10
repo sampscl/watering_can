@@ -9,6 +9,7 @@ import Config
 Application.start(:nerves_bootstrap)
 
 config :watering_can, target: Mix.target()
+config :watering_can, config_env: config_env()
 
 # Customize non-Elixir parts of the firmware. See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.

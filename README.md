@@ -34,6 +34,39 @@ To start your Nerves app:
 - Discussion Slack elixir-lang #nerves ([Invite](https://elixir-slackin.herokuapp.com/))
 - Source: https://github.com/nerves-project/nerves
 
+## Watering Can Protocol Framing
+
+Each message is framed with 2 marking the start of message and 3 marking the end of message:
+
+```elixir
+<<
+  2::size(8),
+  body_len_bytes::integer-little-unsigned-size(16),
+  body::bytes-size(body_len_bytes),
+  xor_chk::integer-little-unsigned-size(8),
+  3::size(8)
+>>
+```
+
+Generally:
+
+```elixir
+<<SOM, BODY_LEN, BODY, CHK, EOM, maybe-more>>
+```
+
+Where the xor_chk is the xored value of all body bytes; kept simple for simplicity's sake :)
+
+## Soil Moisture Sensor Measurements
+
+the SMS measurement is wrapped in a watering can protocol frame with the following frame body:
+
+```elixir
+<<
+  battery_pct::integer-little-unsigned-size(8),
+  moisture_pct::integer-little-unsigned-size(8)
+>>
+```
+
 ## Running in qemu
 
 ```bash

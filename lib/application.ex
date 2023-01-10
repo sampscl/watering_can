@@ -19,7 +19,10 @@ defmodule WateringCan.Application do
       {[Comms.Uart.WateringCanFramer, :frame_timeout], &Telemetry.Comms.Uart.WateringCanFramer.handle_frame_timeout/4},
       {[Comms.Uart.WateringCanFramer, :remove_framing, :start], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_start/4},
       {[Comms.Uart.WateringCanFramer, :remove_framing, :stop], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_stop/4},
-      {[Comms.Uart.WateringCanFramer, :remove_framing, :exception], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_exception/4}
+      {[Comms.Uart.WateringCanFramer, :remove_framing, :exception], &Telemetry.Comms.Uart.WateringCanFramer.handle_remove_framing_exception/4},
+      {[Device.SoilMoistureSensor.Worker, :handle_sms_frame, :start], &Telemetry.Device.SoilMoistureSensor.Worker.handle_sms_frame_start/4},
+      {[Device.SoilMoistureSensor.Worker, :handle_sms_frame, :stop], &Telemetry.Device.SoilMoistureSensor.Worker.handle_sms_frame_stop/4},
+      {[Device.SoilMoistureSensor.Worker, :handle_sms_frame, :exception], &Telemetry.Device.SoilMoistureSensor.Worker.handle_sms_frame_exception/4}
     ]
 
     :ok =
@@ -38,14 +41,16 @@ defmodule WateringCan.Application do
     children =
       [
         # Children for all targets
-        Registry.child_spec(keys: :duplicate, name: WateringCan.Registry),
+        Registry.child_spec(keys: :unique, name: WateringCan.Registry),
         Task.Supervisor.child_spec(name: WateringCan.Task.Supervisor),
         Db.Repo.child_spec([]),
-        Comms.Sup.child_spec(:ok),
+        Device.Sup.child_spec(:ok),
         Web.Telemetry.child_spec([]),
         Phoenix.PubSub.child_spec(name: Web.PubSub),
         Web.Endpoint.child_spec([])
-      ] ++ children(target())
+      ] ++
+        target_children(target()) ++
+        env_children(config_env())
 
     result = Supervisor.start_link(children, strategy: :one_for_one, name: WateringCan.Supervisor)
     :ok = start_initial_tasks()
@@ -53,7 +58,7 @@ defmodule WateringCan.Application do
   end
 
   # List all child processes to be supervised
-  def children(:host) do
+  def target_children(:host) do
     [
       # Children that only run on the host
       # Starts a worker by calling: WateringCan.Worker.start_link(arg)
@@ -61,7 +66,7 @@ defmodule WateringCan.Application do
     ]
   end
 
-  def children(_target) do
+  def target_children(_target) do
     [
       # Children for all targets except host
       # Starts a worker by calling: WateringCan.Worker.start_link(arg)
@@ -69,13 +74,26 @@ defmodule WateringCan.Application do
     ]
   end
 
-  def target() do
-    Application.get_env(:watering_can, :target)
+  def env_children(:integration) do
+    [
+      # Children that only run in a certain configuration environment
+      Integration.SmsSimManager.child_spec(:ok)
+    ]
   end
+
+  def env_children(_env) do
+    [
+      # Children that only run in a certain configuration environment
+    ]
+  end
+
+  def target(), do: Application.get_env(:watering_can, :target)
+
+  def config_env(), do: Application.get_env(:watering_can, :config_env)
 
   def start_initial_tasks do
     Task.Supervisor.start_child(WateringCan.Task.Supervisor, fn ->
-      Enum.each(Db.Models.Uart.all(), &Comms.Uart.Sup.start_worker(&1))
+      Enum.each(Db.Models.SoilMoistureSensor.all(), &Device.SoilMoistureSensor.Sup.start_worker(&1))
     end)
 
     :ok

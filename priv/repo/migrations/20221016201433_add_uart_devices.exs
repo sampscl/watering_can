@@ -13,5 +13,6 @@ defmodule Db.Repo.Migrations.AddUartDevices do
       add(:friendly_name, :string, null: false, size: 128, default: "")
       timestamps()
     end
-  end
+    create(unique_index(:uart, [:name]))
+    end
 end

@@ -1,21 +1,8 @@
 defmodule Comms.Uart.WateringCanFramer do
   @moduledoc """
-  UART framing behaviour for the watering can protocol.
+  UART framing behaviour for the watering can protocol, used with Circuits.UART.
 
-  ## Framing
-  Each message is framed with 2 marking the start of message and 3 marking the end of message:
-  <<
-    2::size(8),
-    body_len_bytes::integer-little-unsigned-size(16),
-    body::bytes-size(body_len_bytes),
-    xor_chk::integer-little-unsigned-size(8),
-    3::size(8)
-  >>
-
-  Generally:
-  <<SOM, BODY_LEN, BODY, CHK, EOM, maybe-more>>
-
-  Where the xor_chk is the xored value of all body bytes; kept simple for simplicity's sake :)
+  See README.md for framing bit layout.
 
   ## Telemetry
   The following telemetry is produced, the events' measurements include %{utc_now: DateTime.t()}:
@@ -76,21 +63,28 @@ defmodule Comms.Uart.WateringCanFramer do
   def init(name), do: {:ok, %State{rx_buf: <<>>, name: name}}
 
   @impl Nerves.UART.Framing
-  def remove_framing(new_data, state) do
-    :telemetry.span([Comms.Uart.WateringCanFramer, :remove_framing], %{new_data: new_data, rx_buf: state.rx_buf, name: state.uart_name}, fn ->
-      rx_buf = state.rx_buf <> new_data
+  # @spec remove_framing(binary(), State.t()) :: {:ok | :in_frame, list(binary()), State.t()}
+  def remove_framing(new_data, %State{} = state) do
+    telem_result =
+      :telemetry.span([Comms.Uart.WateringCanFramer, :remove_framing], %{new_data: new_data, rx_buf: state.rx_buf, name: state.name}, fn ->
+        rx_buf = state.rx_buf <> new_data
 
-      result =
-        case reduce_buf(rx_buf) do
-          {<<>>, deframed} ->
-            {:ok, deframed, %{state | rx_buf: <<>>}}
+        result =
+          case reduce_buf(rx_buf, []) do
+            {<<>>, deframed} ->
+              {:ok, deframed, %State{state | rx_buf: <<>>}}
 
-          {remainder, deframed} ->
-            {:in_frame, deframed, %{state | rx_buf: remainder}}
-        end
+            {remainder, deframed} ->
+              {:in_frame, deframed, %State{state | rx_buf: remainder}}
+          end
 
-      {result, %{rx_buf: rx_buf, name: state.uart_name, result: result}}
-    end)
+        {result, %{rx_buf: rx_buf, name: state.name, result: result}}
+      end)
+
+    case telem_result do
+      {:ok, msg_list, %State{} = _updated_state} = result when is_list(msg_list) -> result
+      {:in_frame, msg_list, %State{} = _updated_state} = result when is_list(msg_list) -> result
+    end
   end
 
   @spec chk(bitstring()) :: integer()

@@ -65,7 +65,8 @@ defmodule WateringCan.MixProject do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "spec/support"]
+  defp elixirc_paths(:integration), do: ["lib", "integration"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
@@ -107,11 +108,13 @@ defmodule WateringCan.MixProject do
       {:nerves_system_grisp2, "~> 0.3", runtime: false, targets: :grisp2},
 
       # core deps
-      {:espec, "~> 1.9", only: :test},
+      {:espec, "~> 1.9", only: [:test, :integration]},
+      {:ex_machina, "~> 2.7", only: [:test, :integration]},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false},
       {:ecto_sqlite3, "~> 0.8"},
-      {:telemetry, "~> 1.1"},
+      {:telemetry, "~> 1.2"},
+      {:executus, "~> 0.6"},
 
       # web / phoenix
       {:phoenix, "~> 1.6"},
