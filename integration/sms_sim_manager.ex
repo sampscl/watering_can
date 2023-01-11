@@ -12,17 +12,18 @@ defmodule Integration.SmsSimManager do
 
     defmodule SimState do
       @moduledoc false
-      @keys ~w/pid pty_path/a
+      @keys ~w/pid framer_state owner_pid/a
       @enforce_keys @keys
       defstruct @keys
 
       @type t() :: %__MODULE__{
-              pid: pid(),
-              pty_path: String.t() | nil
+              pid: pid() | nil,
+              framer_state: term(),
+              owner_pid: pid() | nil
             }
     end
 
-    @keys ~w/sim_pids/a
+    @keys ~w/sims/a
     @enforce_keys @keys
     defstruct @keys
 
@@ -31,7 +32,7 @@ defmodule Integration.SmsSimManager do
           }
 
     @type t() :: %__MODULE__{
-            sim_pids: sim_state_map_t()
+            sims: sim_state_map_t()
           }
   end
 
@@ -39,17 +40,17 @@ defmodule Integration.SmsSimManager do
   # API
   ##############################
 
-  @spec start_sims(String.t(), pos_integer()) :: :ok | {:error, any()}
+  @spec start_sim(String.t()) :: :ok | {:error, any()}
   @doc """
-  Start simulations
+  Start a simulation (this genserver can manage multiple); will deliver
+  deframed messages individually to the caller pid via `{Integration.SmsSimManager, :input, msg}`
   ## Parameters
   - `sms_sim_path` The directory containing the watering_can_sms_simulator executable
-  - `count` The number of instances to launch
   ## Returns
   - `:ok` All is well
   - `{:error, reason}` failed for reason
   """
-  def start_sims(sms_sim_path, count), do: GenServer.call(__MODULE__, {:start_sims, sms_sim_path, count})
+  def start_sim(sms_sim_path), do: GenServer.call(__MODULE__, {:start_sim, sms_sim_path, self()})
 
   def start_link(:ok), do: GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
 
@@ -60,25 +61,19 @@ defmodule Integration.SmsSimManager do
   @impl GenServer
   def init(:ok) do
     Logger.info("Starting")
-    {:ok, %State{sim_pids: Map.new()}}
+    {:ok, %State{sims: Map.new()}}
   end
 
   @impl GenServer
-  def handle_call({:start_sims, sms_sim_path, count}, _from, state) do
-    {updated_state, result} =
-      if File.exists?(sms_sim_path) do
-        do_start_sims(state, sms_sim_path, count)
-      else
-        {state, {:error, "watering can simulator file does not exist"}}
-      end
-
+  def handle_call({:start_sim, sms_sim_path, owner_pid}, _from, state) do
+    {updated_state, result} = do_start_sim(state, sms_sim_path, owner_pid)
     {:reply, result, updated_state}
   end
 
   @impl GenServer
-  def handle_info({pid, :data, :out, str}, state) do
-    Logger.debug("pid #{inspect(pid)} says: #{inspect(str)}")
-    {:noreply, do_pid_data(state, pid, str)}
+  def handle_info({pid, :data, :out, data}, state) do
+    Logger.debug("pid #{inspect(pid)} says: #{inspect(data)}")
+    {:noreply, do_pid_data(state, pid, data)}
   end
 
   @impl GenServer
@@ -88,9 +83,9 @@ defmodule Integration.SmsSimManager do
   end
 
   @impl GenServer
-  def handle_info({pid, :result, result}, %State{sim_pids: sim_pids} = state) do
-    Logger.error("pid #{inspect(pid)} unexpectedly exited: #{inspect(result)}")
-    {:noreply, %State{state | sim_pids: Map.delete(sim_pids, pid)}}
+  def handle_info({pid, :result, result}, %State{sims: sims} = state) do
+    Logger.error("sim pid #{inspect(pid)} unexpectedly exited: #{inspect(result)}")
+    {:noreply, %State{state | sims: Map.delete(sims, pid)}}
   end
 
   ##############################
@@ -98,14 +93,23 @@ defmodule Integration.SmsSimManager do
   ##############################
 
   @doc false
-  @spec do_start_sims(State.t(), String.t(), non_neg_integer()) :: {State.t(), :ok | {:error, any()}}
-  def do_start_sims(state, _sms_sim_path, 0), do: {state, :ok}
-
-  def do_start_sims(%State{sim_pids: sim_pids} = state, sms_sim_path, count) do
+  @spec do_start_sim(State.t(), String.t(), pid()) :: {State.t(), :ok | {:error, any()}}
+  def do_start_sim(%State{sims: sims} = state, sms_sim_path, owner_pid) do
     case Executus.execute(sms_sim_path, sync: false) do
       {:ok, pid} ->
-        Logger.debug("Started sim #{count} with pid #{inspect(pid)}")
-        do_start_sims(%State{state | sim_pids: Map.put(sim_pids, pid, %State.SimState{pid: pid, pty_path: nil})}, sms_sim_path, count - 1)
+        Logger.info("Started sim #{inspect(pid)} to owner #{inspect(owner_pid)}")
+
+        {:ok, framer_state} = Comms.Uart.WateringCanFramer.init("#{inspect(pid)}-#{inspect(owner_pid)}")
+
+        sim_state = %State.SimState{
+          pid: pid,
+          owner_pid: owner_pid,
+          framer_state: framer_state
+        }
+
+        updated_sims = Map.put(sims, pid, sim_state)
+        updated_state = %State{state | sims: updated_sims}
+        {updated_state, :ok}
 
       error ->
         Logger.error("Failed to start sms sim from #{sms_sim_path}: #{inspect(error)}")
@@ -113,22 +117,19 @@ defmodule Integration.SmsSimManager do
     end
   end
 
-  @spec do_pid_data(State.t(), pid(), binary()) :: State.t()
   @doc false
-  def do_pid_data(%State{sim_pids: sim_pids} = state, pid, data) do
-    with {:known_pid, {:ok, sim_state}} <- {:known_pid, Map.fetch(sim_pids, pid)},
-         {:needs_pty_path, true} <- {:needs_pty_path, is_nil(sim_state.pty_path)},
-         {:extract_pty_path, %{"pty_path" => pty_path}} <- {:extract_pty_path, Regex.named_captures(~r/(?<pty_path>^.+)\s*/, data)} do
-      Logger.debug("pid #{inspect(pid)} pty_path: #{pty_path}")
-      {:ok, _} = Device.SoilMoistureSensor.Sup.start_worker(%{type: :tty_framer, tty: pty_path})
-      %State{state | sim_pids: Map.put(sim_pids, pid, %State.SimState{sim_state | pty_path: pty_path})}
-    else
-      {:known_pid, :error} ->
-        Logger.error("Got message from unknown pid #{inspect(pid)}: #{inspect(data)}")
-        state
+  @spec do_pid_data(State.t(), pid(), binary()) :: State.t()
+  def do_pid_data(%State{sims: sims} = state, pid, data) do
+    case Map.fetch(sims, pid) do
+      {:ok, sim_state} ->
+        {_, body_list, updated_framer_state} = Comms.Uart.WateringCanFramer.remove_framing(data, sim_state.framer_state)
+        Enum.each(body_list, fn msg -> send(sim_state.owner_pid, {__MODULE__, :input, msg}) end)
+        updated_sim_state = %State.SimState{sim_state | framer_state: updated_framer_state}
+        updated_sims = Map.put(sims, pid, updated_sim_state)
+        %State{state | sims: updated_sims}
 
-      {:needs_pty_path, false} ->
-        # this is okay, the sim is allowed to print newlines and stuff after the initial pty path
+      :error ->
+        Logger.error("data from unknown pid")
         state
     end
   end

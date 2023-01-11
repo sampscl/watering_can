@@ -8,8 +8,10 @@ import Config
 # Enable the Nerves integration with Mix
 Application.start(:nerves_bootstrap)
 
-config :watering_can, target: Mix.target()
-config :watering_can, config_env: config_env()
+config :watering_can,
+  target: Mix.target(),
+  config_env: config_env(),
+  sms_simulator: Path.join([File.cwd!(), "../", "watering_can_sms_simulator", "build", "watering_can_sms_simulator"])
 
 # Customize non-Elixir parts of the firmware. See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.

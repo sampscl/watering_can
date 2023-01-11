@@ -7,6 +7,8 @@ defmodule Device.SoilMoistureSensor.Worker do
   use GenServer, restart: :transient
   require Logger
 
+  @config_env Application.compile_env(:watering_can, :config_env)
+
   @typedoc """
   Measurement from a soil moisture sensor
   """
@@ -27,15 +29,14 @@ defmodule Device.SoilMoistureSensor.Worker do
           required(:ordinal) => number()
         }
 
-  @type tty_config() :: %{
-          required(:type) => :tty_framer,
-          required(:tty) => String.t()
+  @type subprocess_config() :: %{
+          required(:type) => :subprocess_framer
         }
 
   @typedoc """
   The type stored in the soil moisture sensor db model's config member
   """
-  @type config_t() :: uart_config() | raw_framer_config() | tty_config()
+  @type config_t() :: uart_config() | raw_framer_config() | subprocess_config()
   defmodule State do
     @moduledoc false
     @keys ~w/sms/a
@@ -54,7 +55,7 @@ defmodule Device.SoilMoistureSensor.Worker do
   @doc """
   Start and link the process
   ## Parameters
-  - `sms` The soil moisture sensor model
+  - `sms` The soil moisture sensor configuration
   ## Returns
   - `GenServer.on_start()`
   """
@@ -73,15 +74,15 @@ defmodule Device.SoilMoistureSensor.Worker do
   end
 
   @impl GenServer
-  def handle_info({:nerves_uart, _serial_port_id, _data} = msg, state) do
+  def handle_info({:nerves_uart, _serial_port_id, data} = _msg, state) do
     # nerves uart will de-frame mesesages before delivering them:
-    {updated_state, _result} = do_handle_sms_message(state, msg)
+    {updated_state, _result} = do_handle_sms_message(state, data)
     {:noreply, updated_state}
   end
 
   @impl GenServer
-  def handle_info({Comms.Tty.WateringCan, :input, data}, state) do
-    # tty will de-frame mesesages before delivering them:
+  def handle_info({Integration.SmsSimManager, :input, data}, state) do
+    # sim manager will de-frame mesesages before delivering them:
     {updated_state, _result} = do_handle_sms_message(state, data)
     {:noreply, updated_state}
   end
@@ -105,9 +106,11 @@ defmodule Device.SoilMoistureSensor.Worker do
     state
   end
 
-  def start_sms(%{sms: _sms = %{type: :tty_framer, tty: tty}} = state) do
-    {:ok, _pid} = Comms.Tty.WateringCan.start_link(tty)
-    state
+  if :integration == @config_env do
+    def start_sms(%{sms: _sms = %{type: :subprocess_framer}} = state) do
+      :ok = Integration.SmsSimManager.start_sim(Application.get_env(:watering_can, :sms_simulator, nil))
+      state
+    end
   end
 
   def start_sms(%{sms: _sms = %{type: framer = Comms.Uart.WateringCanFramer, uart_name: uart_name}} = state) do
@@ -136,7 +139,7 @@ defmodule Device.SoilMoistureSensor.Worker do
       case data do
         <<battery_pct::integer-little-unsigned-size(8), moisture_pct::integer-little-unsigned-size(8)>> ->
           # TODO: process the measurement
-          Logger.debug("valid sms reading: #{moisture_pct}%, battery: #{battery_pct}%")
+          Logger.info("valid sms reading: #{moisture_pct}%, battery: #{battery_pct}%")
           measurement = %{battery_pct: battery_pct, moisture_pct: moisture_pct}
           {{state, {:ok, measurement}}, %{measurement: measurement}}
 

@@ -6,6 +6,8 @@ defmodule WateringCan.Application do
   use Application
   require Logger
 
+  @config_env Application.compile_env(:watering_can, :config_env)
+
   @impl true
   def start(_type, _args) do
     Logger.info("Starting")
@@ -50,7 +52,7 @@ defmodule WateringCan.Application do
         Web.Endpoint.child_spec([])
       ] ++
         target_children(target()) ++
-        env_children(config_env())
+        env_children(@config_env)
 
     result = Supervisor.start_link(children, strategy: :one_for_one, name: WateringCan.Supervisor)
     :ok = start_initial_tasks()
@@ -74,11 +76,13 @@ defmodule WateringCan.Application do
     ]
   end
 
-  def env_children(:integration) do
-    [
-      # Children that only run in a certain configuration environment
-      Integration.SmsSimManager.child_spec(:ok)
-    ]
+  if :integration == @config_env do
+    def env_children(:integration) do
+      [
+        # Children that only run in a certain configuration environment
+        Integration.SmsSimManager.child_spec(:ok)
+      ]
+    end
   end
 
   def env_children(_env) do
@@ -88,8 +92,6 @@ defmodule WateringCan.Application do
   end
 
   def target(), do: Application.get_env(:watering_can, :target)
-
-  def config_env(), do: Application.get_env(:watering_can, :config_env)
 
   def start_initial_tasks do
     Task.Supervisor.start_child(WateringCan.Task.Supervisor, fn ->
